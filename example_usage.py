@@ -35,7 +35,7 @@ my_cylinder = Cylinder(10, (0, 0, 0), (0, 0, -10))
 # 初始化Morsion类
 my_morison = Morsion(1.0, 2.0)
 
-# 创建一个荷载计算实例, 是计算的核心代码，通过其中的方法可以返回荷载的可操作表达式
+# 创建一个荷载计算实例, 是计算的核心代码，通过其中的方法可以返回荷载的numpy表达式
 force_cal = ForceCal(my_cylinder, my_wave, my_morison, rho=1000)
 
 force_eq = force_cal.cal_force_x()  # 计算水平波浪荷载的方法
