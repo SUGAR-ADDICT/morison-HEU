@@ -44,6 +44,6 @@ force_eq = force_cal.cal_force_x()  # 计算水平波浪荷载的方法
 
 bounds = [(0, my_wave.wave_period)]  # 定义搜索范围
 
-max_force = maximum_force(force_eq, bounds)
+max_force, _ = maximum_force(force_eq, bounds)  # 这样就得到了荷载的最大值
 
-print(max_force)
+# 还可以对公式进行可视化
