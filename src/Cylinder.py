@@ -1,4 +1,3 @@
-from sympy import symbols, pi, core
 import numpy as np
 
 
@@ -17,13 +16,14 @@ class Cylinder:
         - :func:`expression_linear_x_z`: 给定端点坐标，返回 `x` 关于 `z` 的线性方程。
     """
 
-    def __init__(self, diameter: float, start=(float, float, float), end=(float, float, float)) -> None:
+    def __init__(self, diameter: float, start=(float, float, float), end=(float, float, float), resolution=10) -> None:
         """
 
         """
         self.diameter = diameter
-        self.start = start
-        self.end = end
+        self.start = np.array(start)
+        self.end = np.array(end)
+        self.resolution = resolution
         try:
             self.unit_vector()
         except ValueError:
@@ -37,7 +37,7 @@ class Cylinder:
 
         :return V (float):
         """
-        return pi*self.diameter**2/4
+        return np.pi*self.diameter**2/4
 
     def unit_area(self) -> float:
         """
@@ -75,7 +75,23 @@ class Cylinder:
 
         return unit_vector
 
-    def expression_linear_x_z(self) -> core.numbers.Float:
+    def discretize(self):
+        """
+        离散化圆柱体，将圆柱体从起始点到终点沿着轴线方向分割为若干点。
+        这里只考虑两个端点，返回一个包含起始点和终点的离散点列表。
+
+        :params resolution (int): 离散点的数量
+        :return: 离散点的坐标数组
+        """
+        # 离散点直接通过插值
+        step = np.linspace(0, 1, self.resolution)
+        points = np.array(
+            [self.start + s * (self.end - self.start) for s in step])
+        distances = np.linalg.norm(np.diff(points, axis=0), axis=1)
+
+        return points, distances
+
+    def expression_linear_x_z(self):
         """
         通过坐标得到x关于z的函数`x = k*z + b`
 
@@ -91,7 +107,7 @@ class Cylinder:
         slope = (x_end-x_start)/(z_end-z_start)
         intercept = x_start-slope*z_start
 
-        z = symbols('z')
+        z = 0
 
         linear_x_z = slope*z-intercept
 
