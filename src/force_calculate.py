@@ -22,13 +22,13 @@ class ForceCal():
         water_acc_u, water_acc_w (sympy expressions): 分别表示x和z方向的水流加速度表达式。
     """
 
-    def __init__(self, cylinder: Cylinder, wave: MateWave, morison: Morsion, rho=1000.0) -> None:
+    def __init__(self, cylinder: Cylinder, wave, morison: Morsion, rho=1000.0, t=0) -> None:
         """
         初始化类实例并计算所需的基本参数。
 
         Args:
             cylinder (Cylinder): 一个 Cylinder 类的实例，包含柱体的几何信息。
-            wave (MateWave): 一个 MateWave 类的实例，包含波浪信息。
+            wave : 一个类的实例，包含波浪信息。
             morison (Morsion): 一个 Morsion 类的实例，用于计算荷载。
             rho (float): 水的密度（默认1000.0 kg/m^3）。
         """
@@ -36,88 +36,167 @@ class ForceCal():
         self.wave = wave
         self.morison = morison
         self.rho = rho
+        self.t = t
 
         _unit_vector = self.cylinder.unit_vector()
         self.e_x = _unit_vector[0]
         self.e_y = _unit_vector[1]
         self.e_z = _unit_vector[2]
-        self.water_vel_u, self.water_vel_w = wave.water_velocity(
-            cylinder.expression_linear_x_z())
-        self.water_acc_u, self.water_acc_w = wave.water_acceleration(
-            cylinder.expression_linear_x_z())
+        self.points, self.distances = self.cylinder.discretize()
+        self.water_u_lst, self.water_w_lst = self.get_vel()
+        self.water_acc_x_lst, self.water_acc_z_lst = self.get_acc()
+        self.vel_vector_lst = self.get_vel_vector()
 
-    def water_velocity_vector(self):
+    def sum(self, values):
+        """
+        梯形法对传入的所有值沿着杆件求和
+
+        Args:
+            values (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        total_value = 0
+        for i in range(1, self.cylinder.resolution):
+            total_value += (values[i-1]+values[i])*self.distances[i-1]/2
+        return total_value
+
+    def get_values_lst(self, expr_func):
+        values_lst = []
+        for i in range(len(self.points)):
+            value = expr_func(i)
+            values_lst.append(value)
+        return values_lst
+
+    def get_vel(self):
+        """
+        获得与坐标对应的速度list
+
+        Returns:
+            _type_: _description_
+        """
+        u_lst = []
+        w_lst = []
+
+        for point in self.points:
+            x = point[0]
+            z = point[2]
+            vel = self.wave.velocity(x, z, self.t)
+            u_lst.append(vel[0][0])
+            w_lst.append(vel[0][1])
+
+        return u_lst, w_lst
+
+    def get_acc(self):
+        """
+        获得与坐标对应的加速度list
+
+        Returns:
+            _type_: _description_
+        """
+        a_x_lst = []
+        a_z_lst = []
+        for point in self.points:
+            x = point[0]
+            z = point[2]
+            acc = self.wave.acceleration(x, z, self.t)
+            a_x_lst.append(acc[0][0])
+            a_z_lst.append(acc[0][1])
+
+        return a_x_lst, a_z_lst
+
+    def get_vel_vector(self):
         """
         计算波浪水质点的运动速度矢量表达式
 
         Returns:
-            (sympy expression)
-        """
-        return self.e_x * self.water_vel_u + self.e_z * self.water_vel_w
+            (sympy expression)：self.e_x * self.water_vel_u + self.e_z * self.water_vel_w
 
-    def velocity_x(self):
+        """
+        vel_vector_lst = []
+        for i in range(len(self.points)):
+            vel_vector = self.e_x * \
+                self.water_u_lst[i] + self.e_z * self.water_w_lst[i]
+            vel_vector_lst.append(vel_vector)
+        return vel_vector_lst
+
+    def get_vel_x(self):
         """
         计算柱体轴线正交的水质点速度矢量的x方向分量表达式
 
         Returns:
             (sympy expression)
         """
-        return self.water_vel_u - self.e_x * self.water_velocity_vector()
+        def expr_func(i):
+            return self.e_x * self.water_u_lst[i] + self.e_z * self.water_w_lst[i]
+        return self.get_values_lst(expr_func)
 
-    def velocity_y(self):
+    def get_vel_y(self):
         """
         计算柱体轴线正交的水质点速度矢量的z方向分量表达式
 
         Returns:
             (sympy expression)
         """
-        return -self.e_y * self.water_velocity_vector()
+        def expr_func(i):
+            return -self.e_y * self.vel_vector_lst[i]
+        return self.get_values_lst(expr_func)
 
-    def velocity_z(self):
+    def get_vel_z(self):
         """
         计算柱体轴线正交的水质点速度矢量的x方向分量表达式
 
         Returns:
             (sympy expression)
         """
+        def expr_func(i):
+            return self.water_w_lst[i]-self.e_z * self.vel_vector_lst[i]
+        return self.get_values_lst(expr_func)
 
-        return self.water_vel_w-self.e_z * self.water_velocity_vector()
-
-    def water_velocity_abs(self):
+    def get_vel_abs(self):
         """
         与柱体正交的水质点速度矢量的绝对值表达式
 
         Returns:
             (sympy expression)
         """
-        return (self.water_vel_u**2 + self.water_vel_w**2 - (self.e_x * self.water_vel_u + self.e_z * self.water_vel_w)**2)**0.5
+        def expr_func(i):
+            return (self.get_vel_x()[i] ** 2 + self.get_vel_y()[i] ** 2 + self.get_vel_z()[i] ** 2) ** 0.5
+        return self.get_values_lst(expr_func)
 
-    def acc_x(self):
+    def get_acc_x(self):
         """
         x方向的水质点加速度表达式
 
         Returns:
             (sympy expression)
         """
-        return (1 - self.e_x**2) * self.water_acc_u - self.e_z * self.e_x * self.water_acc_w
+        def expr_func(i):
+            return (1 - self.e_x**2) * self.water_acc_x_lst[i] - self.e_z * self.e_x * self.water_acc_z_lst[i]
+        return self.get_values_lst(expr_func)
 
-    def acc_y(self):
+    def get_acc_y(self):
         """
         返回y方向的加速度表达式
 
         Returns:
             (sympy expression)     
         """
-        return -1 * self.e_x * self.e_y * self.water_acc_u - self.e_z * self.e_y * self.water_acc_w
+        def expr_func(i):
+            return -1 * self.e_x * self.e_y * self.water_acc_x_lst[i] - self.e_z * self.e_y * self.water_acc_z_lst[i]
+        return self.get_values_lst(expr_func)
 
-    def acc_z(self):
+    def get_acc_z(self):
         """
         返回z方向的加速度表达式
 
         Returns:
             (sympy expression)     
         """
-        return -1 * self.e_x * self.e_z * self.water_acc_u + (1 - self.e_x**2) * self.water_acc_w
+        def expr_func(i):
+            return -1 * self.e_x * self.e_z * self.water_acc_x_lst[i] + (1 - self.e_x**2) * self.water_acc_z_lst[i]
+        return self.get_values_lst(expr_func)
 
     def cal_force_x(self):
         """
@@ -126,32 +205,16 @@ class ForceCal():
         Returns:
             (sympy expression)     
         """
-        z, t = symbols("z t")
 
-        # 得到荷载关于z与t的函数，force_drag=f(t,z)
-        force_drag_x_t_z = self.morison.force_drag(
-            self.rho, self.cylinder.unit_area(), self.water_velocity_abs(), self.velocity_x())
+        def drag_expr(i):
+            return self.morison.force_drag(self.rho, self.cylinder.unit_area(), self.get_vel_abs()[i], self.get_vel_x()[i])
 
-        # 得到荷载关于z与t的函数，force_iner=f(t,z)
-        force_iner_x_t_z = self.morison.force_inertial(
-            self.rho,  self.cylinder.unit_volume(), self.acc_x())
+        def iner_expr(i):
+            return self.morison.force_inertial(self.rho, self.cylinder.unit_volume(), self.get_acc_x()[i])
+        force_drag_lst = self.get_values_lst(drag_expr)
+        force_iner_lst = self.get_values_lst(iner_expr)
 
-        # 拖曳力含有速度的平方，难以积分，离散求和
-        # TODO 优化求和算法，这样处理还是太简单了
-        n_segments = 20  # 分片数
-        delta_z = (self.cylinder.end[2] - self.cylinder.start[2]) / n_segments
-        z_values = [self.cylinder.start[2] + i *
-                    delta_z for i in range(n_segments)]
-        force_drag_x_t = sum(
-            force_drag_x_t_z.subs(z, z_val) * delta_z for z_val in z_values
-        )
+        force_drag = self.sum(force_drag_lst)
+        froce_iner = self.sum(force_iner_lst)
 
-        force_iner_x_t = integrate(
-            force_iner_x_t_z, (z, self.cylinder.start[2], self.cylinder.end[2]))
-
-        force_total_x_t = force_drag_x_t + force_iner_x_t
-
-        num_force_x_t = lambdify(
-            t, force_total_x_t, 'numpy')  # 将sympy表达式转换为可操作的函数
-
-        return num_force_x_t
+        return force_drag + froce_iner
