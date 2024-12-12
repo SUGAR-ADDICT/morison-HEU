@@ -13,7 +13,7 @@ class Cylinder:
         - :func:`unit_volume`: 计算单位体积。
         - :func:`unit_area`: 计算单位面积。
         - :func:`unit_vector`: 计算从起始点到终点的单位矢量。
-        - :func:`expression_linear_x_z`: 给定端点坐标，返回 `x` 关于 `z` 的线性方程。
+        - :func:`discretize` : 根据杆件端点坐标离散。
     """
 
     def __init__(self, diameter: float, start=(float, float, float), end=(float, float, float), resolution=10) -> None:
@@ -28,8 +28,6 @@ class Cylinder:
             self.unit_vector()
         except ValueError:
             print("两个点坐标相同，请检查坐标输入")
-        else:
-            print("cylinder创建成功")
 
     def unit_volume(self) -> float:
         """
@@ -90,25 +88,3 @@ class Cylinder:
         distances = np.linalg.norm(np.diff(points, axis=0), axis=1)
 
         return points, distances
-
-    def expression_linear_x_z(self):
-        """
-        通过坐标得到x关于z的函数`x = k*z + b`
-
-        :return linear_x_z (sympy.core.numbers.Float):
-        """
-        x_start = self.start[0]
-        # y_start = self.start[1]
-        z_start = self.start[2]
-        x_end = self.end[0]
-        # y_end = self.end[1]
-        z_end = self.end[2]
-
-        slope = (x_end-x_start)/(z_end-z_start)
-        intercept = x_start-slope*z_start
-
-        z = 0
-
-        linear_x_z = slope*z-intercept
-
-        return linear_x_z
