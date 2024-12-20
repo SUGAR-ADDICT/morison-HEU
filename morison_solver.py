@@ -6,14 +6,8 @@ from src.Cylinder import Cylinder
 from src.force_calculate import ForceCal
 from src.Morison import Morsion
 import raschii
-import yaml
+from parse_config import parse_yaml_config
 os.environ['TCL_LIBRARY'] = r'D:/Application/Python3.13.0/tcl/tcl8.6'
-
-
-def parse_yaml_config(file_path):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        config = yaml.safe_load(f)  # 使用 safe_load 来加载文件
-    return config
 
 
 def read_mesh(file_path, resolution):
@@ -33,55 +27,91 @@ def read_mesh(file_path, resolution):
     return cylinders
 
 
-def main(config_file_path, geo_file_path):
+def main(config_file_path):
     config = parse_yaml_config('config.yaml')
 
     C_D = config['env']['C_D']
     C_M = config['env']['C_M']
     RHO = config['env']['RHO']
 
+    GEO_FILE = config['geo']['GEO_FILE']
+    base_name = GEO_FILE.split('.')[0]  # 使用 '.' 分割，取第一个部分
+
     WAVE_MODEL = config['wave']['WAVE_MODEL']
-    WAVE_LENGTH = config['wave']['WAVE_LENGTH']
-    WAVE_HEIGHT = config['wave']['WAVE_HEIGHT']
-    WATER_DEPTH = config['wave']['WATER_DEPTH']
+    WAVE_ORDER = config['wave']['WAVE_ORDER']
+    WAVE_LENGTH_lst = config['wave']['WAVE_LENGTH']
+    WAVE_HEIGHT_lst = config['wave']['WAVE_HEIGHT']
+    WATER_DEPTH_lst = config['wave']['WATER_DEPTH']
+
+    wave_case_lst = [(wave_length, wave_height, wave_depth)
+                     for wave_length in WAVE_LENGTH_lst
+                     for wave_height in WAVE_HEIGHT_lst
+                     for wave_depth in WATER_DEPTH_lst]
 
     MESH_RESOLUTION = config['solver']['MESH_RESOLUTION']
     TIME_RESOLUTION = config['solver']['TIME_RESOLUTION']
 
-    print(f"Wave Model: {WAVE_MODEL}")
-    print(f"Wave Length: {WAVE_LENGTH} m")
-    print(f"Wave Height: {WAVE_HEIGHT} m")
-    print(f"Water Depth: {WATER_DEPTH} m")
-
     # Initialize wave model
-    wave_model, _ = raschii.get_wave_model(WAVE_MODEL)
-    my_wave = wave_model(WAVE_HEIGHT, WATER_DEPTH, WAVE_LENGTH)
-    period = my_wave.T
-    t_lst = np.linspace(0, period, TIME_RESOLUTION)
+    temp_value_lst = []
+    case_name_lst = []
+    for wave_case in wave_case_lst:
 
-    # Initialize Morison class
-    my_morison = Morsion(C_D, C_M)
+        wave_length = wave_case[0]
+        wave_height = wave_case[1]
+        water_depth = wave_case[2]
 
-    # Read Mesh.cy file and create Cylinder objects
-    cylinders = read_mesh(geo_file_path, MESH_RESOLUTION)
+        wave_model, _ = raschii.get_wave_model(WAVE_MODEL)
+        # Airy 模型不需要指定阶数，其他模型需要
+        if WAVE_MODEL == 'Airy':
+            my_wave = wave_model(wave_height, water_depth, wave_length)
+        else:
+            my_wave = wave_model(wave_height, water_depth,
+                                 wave_length, WAVE_ORDER)
 
-    val_lst = []
-    # Loop through time points and calculate forces
-    for t in t_lst:
-        total_force = 0
-        for my_cylinder in cylinders:
-            my_force_cal = ForceCal(my_cylinder, my_wave, my_morison, RHO, t)
-            force = my_force_cal.cal_force_x()
-            total_force += force  # Accumulate the total force for all cylinders
-        val_lst.append(total_force)
+        period = my_wave.T
+        t_lst = np.linspace(0, period, TIME_RESOLUTION)
 
-    # Plot the results
-    # TODO 将结果写入文件
-    plt.plot(t_lst, val_lst)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Total Force (N)")
-    plt.title("Total Force on Cylinders Over Time")
-    plt.show()
+        case_name = rf"L{wave_length}H{wave_height}D{water_depth}T{period:.4f}"
+        case_name_lst.append(case_name)
+
+        # Initialize Morison class
+        my_morison = Morsion(C_D, C_M)
+
+        # Read Mesh.cy file and create Cylinder objects
+        geo_file_path = rf"{base_name}D{water_depth}.cy"
+
+        cylinders = read_mesh(geo_file_path, MESH_RESOLUTION)
+
+        val_lst = []
+        # Loop through time points and calculate forces
+        for t in t_lst:
+            total_force = 0
+            for my_cylinder in cylinders:
+                my_force_cal = ForceCal(
+                    my_cylinder, my_wave, my_morison, RHO, t)
+                force = my_force_cal.cal_force_x()
+                total_force += force  # Accumulate the total force for all cylinders
+            val_lst.append(total_force)
+        # normal_t_lst = t_lst/period
+        normal_t_lst = t_lst  # 不直接写入
+        temp_value_lst.append(val_lst)
+
+    # 打开文件进行写入
+    file_path = "results.txt"
+    with open(file_path, 'w') as f:
+        # 写入列标题
+        f.write("#Casename\t" +
+                "\t".join([f"{case_name}" for case_name in case_name_lst]) + "\n")
+        f.write(
+            "#Time(s)\t" + "\t".join([f"Force_{i+1}(N)" for i in range(len(temp_value_lst))]) + "\n")
+
+        # 写入每一对 (t, val_lst) 数据
+        for i, t in enumerate(normal_t_lst):
+            # 将时间点 t 和对应的 force 值逐列写入文件
+            f.write(
+                f"{t:.5f}\t" + "\t".join([f"{force[i]:.5f}" for force in temp_value_lst]) + "\n")
+
+    print(f"Data written to {file_path}")
 
 
 if __name__ == "__main__":
@@ -90,4 +120,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     config_file = sys.argv[1]
-    main(config_file, "Mesh.cy")
+    main(config_file)
