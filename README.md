@@ -19,10 +19,7 @@ py pre_mesh.py config.YAML
 py morison_solver.py config.YAML
 ```
 开始计算
-```
-py show_result.py
-```
-绘制计算结果的时历曲线
+
 ```
 py postProc.py
 ```
