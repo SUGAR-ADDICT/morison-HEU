@@ -1,7 +1,5 @@
 from src.Cylinder import Cylinder
 from src.Morison import Morsion
-from src.MateWave import MateWave
-from sympy import symbols, integrate, lambdify
 
 
 class ForceCal():
