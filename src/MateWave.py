@@ -4,7 +4,7 @@
 """
 
 import raschii
-from sympy import exp, cos, sin, symbols
+from sympy import exp, cos, sin
 
 
 class MateWave:
