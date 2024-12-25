@@ -52,7 +52,7 @@ class MateWave:
                          length=self.wave_length, N=self.model_order)
         return wave
 
-    def water_velocity(self, expression_x_z):
+    def water_velocity(self, x, z, t):
         """
         计算水流速度分量。
 
@@ -61,19 +61,18 @@ class MateWave:
         :param expression_x_z: 关于 `x` 和 `z` 的表达式，通常是波浪运动的表达式。
         :return: 水流的水平和垂直速度分量（u 和 w）
         """
-        z, t = symbols('z t')
         # 定义函数表示水质点速度分量
         water_velocity_u = self.wave_amp * self.wave_freq * \
             exp(self.wave_number * z) * \
-            cos(self.wave_number * expression_x_z - self.wave_freq * t)
+            cos(self.wave_number * x - self.wave_freq * t)
 
         water_velocity_w = self.wave_amp * self.wave_freq * \
             exp(self.wave_number * z) * \
-            sin(self.wave_number * expression_x_z - self.wave_freq * t)
+            sin(self.wave_number * x - self.wave_freq * t)
 
         return water_velocity_u, water_velocity_w
 
-    def water_acceleration(self, expression_x_z):
+    def water_acceleration(self, x, z, t):
         """
         计算水流加速度分量。
 
@@ -82,14 +81,14 @@ class MateWave:
         :param expression_x_z: 关于 `x` 和 `z` 的表达式，通常是波浪运动的表达式。
         :return: 水流的水平和垂直加速度分量（acc_x 和 acc_z）
         """
-        z, t = symbols('z t')
+
         # 定义函数表示水质点加速度分量
         water_acc_x = self.wave_amp * self.wave_freq**2 * \
             exp(self.wave_number * z) * \
-            sin(self.wave_number * expression_x_z - self.wave_freq * t)
+            sin(self.wave_number * x - self.wave_freq * t)
         water_acc_z = -self.wave_amp * self.wave_freq**2 * \
             exp(self.wave_number * z) * \
-            cos(self.wave_number * expression_x_z - self.wave_freq * t)
+            cos(self.wave_number * x - self.wave_freq * t)
         return water_acc_x, water_acc_z
 
 

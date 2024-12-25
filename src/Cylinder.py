@@ -1,4 +1,3 @@
-from sympy import symbols, pi, core
 import numpy as np
 
 
@@ -14,22 +13,21 @@ class Cylinder:
         - :func:`unit_volume`: 计算单位体积。
         - :func:`unit_area`: 计算单位面积。
         - :func:`unit_vector`: 计算从起始点到终点的单位矢量。
-        - :func:`expression_linear_x_z`: 给定端点坐标，返回 `x` 关于 `z` 的线性方程。
+        - :func:`discretize` : 根据杆件端点坐标离散。
     """
 
-    def __init__(self, diameter: float, start=(float, float, float), end=(float, float, float)) -> None:
+    def __init__(self, diameter: float, start=(float, float, float), end=(float, float, float), resolution=10) -> None:
         """
 
         """
         self.diameter = diameter
-        self.start = start
-        self.end = end
+        self.start = np.array(start)
+        self.end = np.array(end)
+        self.resolution = resolution
         try:
             self.unit_vector()
         except ValueError:
             print("两个点坐标相同，请检查坐标输入")
-        else:
-            print("cylinder创建成功")
 
     def unit_volume(self) -> float:
         """
@@ -37,7 +35,7 @@ class Cylinder:
 
         :return V (float):
         """
-        return pi*self.diameter**2/4
+        return np.pi*self.diameter**2/4
 
     def unit_area(self) -> float:
         """
@@ -75,24 +73,18 @@ class Cylinder:
 
         return unit_vector
 
-    def expression_linear_x_z(self) -> core.numbers.Float:
+    def discretize(self):
         """
-        通过坐标得到x关于z的函数`x = k*z + b`
+        离散化圆柱体，将圆柱体从起始点到终点沿着轴线方向分割为若干点。
+        这里只考虑两个端点，返回一个包含起始点和终点的离散点列表。
 
-        :return linear_x_z (sympy.core.numbers.Float):
+        :params resolution (int): 离散点的数量
+        :return: 离散点的坐标数组
         """
-        x_start = self.start[0]
-        # y_start = self.start[1]
-        z_start = self.start[2]
-        x_end = self.end[0]
-        # y_end = self.end[1]
-        z_end = self.end[2]
+        # 离散点直接通过插值
+        step = np.linspace(0, 1, self.resolution)
+        points = np.array(
+            [self.start + s * (self.end - self.start) for s in step])
+        distances = np.linalg.norm(np.diff(points, axis=0), axis=1)
 
-        slope = (x_end-x_start)/(z_end-z_start)
-        intercept = x_start-slope*z_start
-
-        z = symbols('z')
-
-        linear_x_z = slope*z-intercept
-
-        return linear_x_z
+        return points, distances
