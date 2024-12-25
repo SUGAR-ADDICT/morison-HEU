@@ -24,3 +24,38 @@ py morison_solver.py config.YAML
 py postProc.py
 ```
 对计算结果进行后处理，找出每一个算例中的最大值
+
+# config.YAML 模板
+```
+# 环境设置
+env:
+  C_D: 1.0
+  C_M: 2.0
+  RHO: 1000
+
+# 几何设置
+geo:
+  GEO_FILE: "d90_scale.bdf"
+
+# 波浪设置
+wave:
+  WAVE_MODEL: "Fenton" #The available wave models {"Airy": AiryWave, "Fenton": FentonWave, "Stokes": StokesWave}
+  WAVE_ORDER: 5
+  WAVE_LENGTH:
+    start: 0.852
+    end: 5.852
+    step: 1.1
+  WAVE_HEIGHT:
+    start: 0.08
+    end: 0.08
+    step: 1
+  WATER_DEPTH:
+    start: 1.2
+    end: 1.2
+    step: 1
+
+# 求解设置
+solver:
+  MESH_RESOLUTION: 50
+  TIME_RESOLUTION: 20
+```
