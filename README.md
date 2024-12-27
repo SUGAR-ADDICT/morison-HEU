@@ -10,20 +10,18 @@ pip install -r requirement.txt
 # 使用方法
 1. 将bdf文件放入根目录
 2. 在config.YAML内设置计算参数
-3. 依次运行
+3. 将bdf文件处理成.cy后缀的计算文件
 ```
 py pre_mesh.py config.YAML
 ```
-预处理网格文件
+4. 根据设置求解
 ```
-py morison_solver.py config.YAML
+py solver.py config.YAML
 ```
-开始计算
-
+5. 对计算结果进行后处理，找出每一个算例中的最大值
 ```
 py postProc.py
 ```
-对计算结果进行后处理，找出每一个算例中的最大值
 
 # config.YAML 模板
 ```
