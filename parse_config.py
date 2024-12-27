@@ -1,5 +1,5 @@
 import yaml
-
+from numpy import linspace
 
 def frange(start, end, step):
     while start <= end:
@@ -16,7 +16,6 @@ def parse_yaml_config(file_path):
         if isinstance(config['wave'][key], dict) and 'start' in config['wave'][key]:
             start = config['wave'][key]['start']
             end = config['wave'][key]['end']
-            step = config['wave'][key].get('step', 1)  # 默认为1
-            config['wave'][key] = list(
-                frange(start, end, step))  # 使用 numpy 生成浮点范围
+            n = config['wave'][key].get('n', 1)  # 默认为1
+            config['wave'][key] =  linspace(start,end,n)
     return config
