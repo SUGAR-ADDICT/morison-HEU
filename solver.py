@@ -6,16 +6,16 @@ import numpy as np
 from src.Cylinder import Cylinder
 from src.force_calculate import ForceCal
 from src.Morison import Morsion
-from parse_config import parse_yaml_config
+from src.parse_config import parse_yaml_config
 
 
 # 定义一个修饰器来计算和打印运行时间
 def time_it(func):
     def wrapper(*args, **kwargs):
-        start_time = time.time()  # 记录开始时间
-        result = func(*args, **kwargs)  # 执行原函数
-        end_time = time.time()  # 记录结束时间
-        elapsed_time = end_time - start_time  # 计算运行时间
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        elapsed_time = end_time - start_time
         print(f"Execution time is {elapsed_time:.2f} seconds.")
         return result
 
@@ -100,7 +100,6 @@ def main(config_file_path):
         cylinders = read_mesh(geo_file_path, MESH_RESOLUTION)
 
         val_lst = []
-        # Loop through time points and calculate forces
         for t in t_lst:
             total_force = 0
             for my_cylinder in cylinders:
@@ -108,7 +107,6 @@ def main(config_file_path):
                 force = my_force_cal.cal_force_x()
                 total_force += force  # Accumulate the total force for all cylinders
             val_lst.append(total_force)
-        # normal_t_lst = t_lst/period
         normal_t_lst = t_lst  # 不直接写入
         temp_value_lst.append(val_lst)
 

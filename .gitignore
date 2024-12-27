@@ -1,0 +1,30 @@
+# 排除虚拟环境
+venv/
+__pycache__/
+
+# 排除测试文件夹
+temp/
+morison/
+
+# 排除测试文件
+*.bdf
+*.cy
+*.YAML
+*.txt
+*.hm
+
+# 排除常见的临时文件
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.swp
+*.YAML~
+*.un~
+
+# 排除 IDE 配置文件
+.idea/
+.vscode/
+
+# 排除调试文件
+result.json
