@@ -27,7 +27,7 @@ def extract_wave_parameters(case_name):
         wave_height = float(match.group(2))
         water_depth = float(match.group(3))
         wave_period = float(match.group(4))
-        return wave_length, wave_height, water_depth, wave_period
+        return wave_period,wave_length, wave_height, water_depth 
     return None, None, None, None  # 如果没有匹配到格式，返回 None
 
 
@@ -38,7 +38,7 @@ max_forces = np.max(forces, axis=0)  # 每列的最大值
 with open(output_path, "w") as out_f:
     # 写入文件头部
     out_f.write(
-        "# wave_length(m) wave_height(m) water_depth(m) wave_period(s) force(N)\n"
+        "# wave_period(s) wave_length(m) wave_height(m) water_depth(m) force(N)\n"
     )
 
     # 遍历每个 case_name 和对应的最大值，写入文件
